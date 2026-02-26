@@ -1,1007 +1,195 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Auth + Budget/Orders Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    :root {
-      /* Vivid layered background */
-      --bg1:#e6f3ff; --bg2:#f8ecff; --bg3:#ffe8f1;
-      --card:#ffffff; --txt:#222; --muted:#666;
-      --primary:#0066ff; --primary-d:#004fbe; --danger:#dc3545; --success:#28a745;
-      --warning:#ff9800; --soft:#eef6ff;
-      --glass: rgba(255,255,255,0.82);
-    }
+<meta charset="UTF-8">
+<title>Global Online Store</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-    * { box-sizing: border-box; }
-
-    /* ---------- Page: allow natural scroll everywhere ---------- */
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      min-height: 100vh;
-      display: block; /* scrolling allowed */
-      background:
-        radial-gradient(1200px 800px at 10% 10%, var(--bg1), transparent 60%),
-        radial-gradient(900px 700px at 90% 30%, var(--bg2), transparent 55%),
-        radial-gradient(1000px 900px at 30% 90%, var(--bg3), transparent 50%),
-        linear-gradient(135deg, #eaf2ff 0%, #fff5fb 50%, #eef8ff 100%);
-    }
-
-    /* ---------- Login layout: hero (left) + panel (right) ---------- */
-    .login-wrapper {
-      display: flex;
-      align-items: stretch;
-      width: 100%;
-      min-height: 100vh; /* at least full view height; grows with content */
-    }
-
-    /* LEFT: hero fills all space except right panel */
-    .auth-hero {
-      position: relative;
-      flex: 1 1 auto;           /* take all the leftover width */
-      min-height: 100vh;        /* at least full height */
-      overflow: hidden;
-    }
-    .auth-hero::before {
-      content: "";
-      position: absolute; inset: 0;
-      background: var(--bg1);
-    }
-    .hero-bg {
-      position: absolute; inset: 0;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      transform: scale(1.02);
-      filter: saturate(1.05) contrast(1.02);
-    }
-    .auth-hero::after {
-      content:""; position: absolute; inset: 0;
-      background: linear-gradient(90deg, rgba(0,0,0,0.14), rgba(0,0,0,0.06), transparent 40%);
-      pointer-events: none;
-    }
-
-    /* RIGHT: glass login card (fixed width) */
-    .card {
-      width: min(440px, 94vw);
-      margin: 24px;
-      align-self: center;
-      background: var(--glass);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 2rem;
-      box-shadow: 0 12px 32px rgba(0,0,0,0.15);
-      border: 1px solid rgba(255,255,255,0.6);
-    }
-
-    /* ---------- Dashboard container ---------- */
-    .welcome-card {
-      width: min(1100px, 96vw);
-      margin: 24px auto;
-      background: rgba(228, 18, 18, 0.92);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(47, 66, 177, 0.7);
-      border-radius: 14px;
-      padding: 20px 20px 22px;
-      box-shadow: 0 10px 24px rgba(83, 11, 11, 0.12);
-    }
-
-    h1, h2, h3 { margin-top: 0; color: var(--txt); text-align: center; }
-    input, select, textarea {
-      width: 100%; padding: 10px 12px; margin: 10px 0; border: 1px solid #e6e6e6; border-radius: 8px;
-      font-family: inherit; background:#fff;
-    }
-    textarea { resize: vertical; min-height: 70px; }
-
-    button {
-      width: 100%; padding: 10px; background: var(--primary); color: #fff;
-      border: none; border-radius: 8px; cursor: pointer; font-weight: 700; margin-top: 6px;
-      box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25);
-      transition: transform .05s ease, background .2s ease;
-    }
-    button:hover { background: var(--primary-d); }
-    button:active { transform: translateY(1px); }
-    .logout-btn { background: var(--danger); margin-top: 16px; box-shadow: 0 4px 12px rgba(220,53,69,.2); }
-
-    .toggle-link { text-align: center; margin-top: 12px; font-size: 0.9rem; color: var(--muted); cursor: pointer; }
-    .toggle-link span { color: var(--primary); text-decoration: underline; font-weight: 600; }
-    .message { text-align: center; font-size: 0.95rem; margin-top: 8px; min-height: 20px; }
-
-    /* ---------- Grid/sections ---------- */
-    .grid-2 {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch;
-    }
-    .section {
-      background: #ffffff; border: 1px solid #f0f0f0; border-radius: 10px; padding: 14px;
-      display: flex; flex-direction: column;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-    }
-    .section h3 { text-align: left; margin-bottom: 8px; }
-
-    #budget-section { margin-top: 6px; border-top: 1px solid #eee; padding-top: 12px; text-align: left; }
-
-    .toolbar {
-      display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;
-    }
-    .toolbar .flex-1 { flex: 1; }
-    .toolbar .clear-btn { background: var(--danger); width: auto; padding: 10px 12px; }
-    .toolbar .reset-btn { width: auto; background: #6c757d; }
-    .toolbar .ghost { background: transparent; color: #333; border: 1px solid #ddd; width:auto; padding:8px 10px; }
-
-    .list { overflow-y: auto; margin-top: 10px; }
-    .budget-list { max-height: 220px; overflow-y: auto; margin-top: 8px; }
-    #orders-list { max-height: 60vh; }
-    #my-orders-list { max-height: 40vh; }
-
-    .budget-item, .catalog-item, .order-card, .user-order-card {
-      background: #f8f9fb; padding: 8px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #eef0f3;
-    }
-    .budget-row {
-      display: grid; grid-template-columns: 1.1fr .6fr .8fr .8fr auto auto;
-      gap: 8px; align-items: center; font-size: 0.92rem;
-    }
-    .budget-item .name, .catalog-item .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .amount, .unit-price { font-weight: 700; }
-
-    .row-btn { width: auto; padding: 6px 10px; font-weight: 600; border-radius: 8px; }
-    .row-btn.danger { color: var(--danger); background: #fff; border: 1px solid #f1c3c3; }
-    .row-btn.danger:hover { background: #ffeaea; }
-    .row-btn.secondary { background: #6c757d; color:#fff; }
-    .row-btn.secondary:hover { background: #555f66; }
-    .row-btn.success { background: var(--success); color:#fff; }
-    .row-btn.warning { background: var(--warning); color: #1b1b1b; }
-    .row-btn.ghost { background: #fff; border: 1px solid #ddd; color: #333; }
-
-    .budget-item.editing { background: #fff7e6; }
-    .budget-item input[type="text"], .budget-item input[type="number"], .budget-item select { margin: 0; width: 100%; }
-
-    .total-row {
-      display: flex; justify-content: space-between; align-items: center;
-      background: var(--soft); padding: 10px; border-radius: 8px; margin-top: 10px;
-      font-weight: 600; color: #0b4a9e; gap: 12px;
-    }
-    .total-row .label { font-size: 0.95rem; }
-    .total-row .value { font-variant-numeric: tabular-nums; }
-    .total-row .quantity { color:#0b4a9e; }
-
-    .order-card { border: 1px solid #eaeaea; }
-    .order-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-    .order-items { margin-top: 6px; padding-left: 18px; }
-    .order-items li { margin: 4px 0; }
-
-    /* Status badges */
-    .status {
-      display:inline-block; padding: 3px 10px; border-radius: 999px; font-size: .8rem; font-weight:700;
-      border:1px solid transparent;
-    }
-    .st-pending { background:#fff7e6; color:#a66300; border-color:#ffd89c; }
-    .st-accepted { background:#e9fbff; color:#006a7a; border-color:#bfefff; }
-    .st-preparing { background:#eef0ff; color:#3d44a1; border-color:#cfd5ff; }
-    .st-ready { background:#eaffef; color:#207a3b; border-color:#bff0ce; }
-    .st-out { background:#fff0f0; color:#9a1f1f; border-color:#ffd1d1; }
-    .st-completed { background:#e8fff0; color:#147a4d; border-color:#b8f2d0; }
-    .st-cancelled { background:#fdecec; color:#b00020; border-color:#f8bcbc; }
-
-    [hidden] { display: none !important; }
-    .inline { display: inline-flex; align-items: center; gap: 8px; }
-    .w-auto { width: auto; }
-    .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-
-    /* Responsive: hide hero & center auth on small screens */
-    @media (max-width: 900px) {
-      .auth-hero { display: none; }
-      .login-wrapper { justify-content: center; }
-      .welcome-card { margin: 16px; }
-      .grid-2 { grid-template-columns: 1fr; }
-    }
-  </style>
+<style>
+body{font-family:Arial;margin:0;padding:20px;background:#f4f6ff}
+.card{background:#fff;padding:20px;border-radius:10px;margin-bottom:20px}
+input,textarea,select{width:100%;padding:8px;margin:5px 0}
+button{padding:8px 12px;margin-top:5px;background:#0066ff;color:#fff;border:none;border-radius:6px;cursor:pointer}
+button:hover{background:#004ecc}
+.owner{background:#ffecec}
+.order{border:1px solid #ddd;padding:10px;margin:10px 0;border-radius:6px}
+</style>
 </head>
 <body>
 
-  <!-- LOGIN VIEW (scrolls with the page) -->
-  <div id="login-layout" class="login-wrapper">
-    <!-- LEFT: fills all space except the right panel -->
-    <aside id="auth-hero" class="auth-hero" aria-hidden="false">
-      <div id="hero-bg" class="hero-bg"></div>
-      <img src="C:\even sem\DTW\websitepic.png" alt="Welcome illustration" />
-    </aside>
+<h2>Online Store</h2>
 
-    <!-- RIGHT: login card -->
-    <section id="auth-view" class="card">
-      <h2 id="form-title">Login</h2>
-      <input type="text" id="username" placeholder="Username" />
-      <input type="password" id="password" placeholder="Password" />
-      <button onclick="handleSubmit()">Continue</button>
-      <div class="toggle-link" onclick="toggleMode()">
-        <p id="toggle-text">Don't have an account? <span>Create one</span></p>
-      </div>
-      <p id="msg" class="message"></p>
-    </section>
-  </div>
+<div id="auth-section" class="card">
+<h3>Login / Register</h3>
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="password" placeholder="Password">
+<button onclick="register()">Register</button>
+<button onclick="login()">Login</button>
+<p id="auth-msg"></p>
+</div>
 
-  <!-- DASHBOARD VIEW (shown after login) -->
-  <section id="dashboard-view" class="welcome-card" hidden>
-    <h1 id="dash-title">Welcome!</h1>
+<div id="store-section" hidden>
 
-    <!-- USER VIEW -->
-    <div id="user-view" hidden>
-      <div id="budget-section">
-        <h3>Order / Cart</h3>
+<div id="customer-view" hidden class="card">
+<h3>Customer Details</h3>
+<input type="text" id="name" placeholder="Full Name">
+<input type="text" id="phone" placeholder="Phone">
+<textarea id="address" placeholder="Address"></textarea>
 
-        <div class="grid-2">
-          <div class="section">
-            <h3>Add to Cart</h3>
-            <label for="catalog-select">Item</label>
-            <select id="catalog-select"></select>
+<h3>Products</h3>
+<div id="product-list"></div>
 
-            <label for="item-qty">Quantity</label>
-            <input type="number" id="item-qty" placeholder="Quantity" step="1" min="1" />
+<h3>Place Order</h3>
+<select id="product-select"></select>
+<input type="number" id="quantity" placeholder="Quantity">
+<button onclick="placeOrder()">Place Order</button>
+</div>
 
-            <button style="background: var(--success);" onclick="addBudgetItem()">Add to Cart</button>
-            <small id="unit-hint" style="color: var(--muted); display:block; margin-top:6px;"></small>
-          </div>
+<div id="owner-view" hidden class="card owner">
+<h3>Owner Panel</h3>
 
-          <div class="section">
-            <h3>Search & Actions</h3>
-            <div class="toolbar">
-              <input class="flex-1" type="text" id="search-input" placeholder="Search items (name, qty, amount)..." oninput="setFilter(this.value)" />
-              <button class="reset-btn" onclick="resetFilter()" title="Clear search" aria-label="Clear search">Reset</button>
-              <button class="clear-btn" onclick="clearAllBudget()">Clear Cart</button>
-            </div>
-            <small id="filter-hint" hidden>Filtering results…</small>
-          </div>
-        </div>
+<h4>Add Product</h4>
+<input type="text" id="new-product" placeholder="Product Name">
+<input type="number" id="new-price" placeholder="Price">
+<button onclick="addProduct()">Add Product</button>
 
-        <!-- Cart Items -->
-        <div class="budget-list" id="budget-list"></div>
+<h4>All Orders</h4>
+<div id="all-orders"></div>
+</div>
 
-        <!-- Totals -->
-        <div class="total-row">
-          <span class="label" id="total-label">Total</span>
-          <span class="quantity" id="total-qty"></span>
-          <span class="value" id="total-amount">$0.00</span>
-        </div>
+<button onclick="logout()">Logout</button>
+</div>
 
-        <!-- User comment field -->
-        <label for="user-comment" style="margin-top:12px; display:block;">Comment / Special instructions (optional)</label>
-        <textarea id="user-comment" placeholder="Type a note for the owner…"></textarea>
+<script type="module">
 
-        <button style="margin-top:12px; background: #1f7a1f;" onclick="placeOrder()">Place Order</button>
-        <p id="user-info" style="color:#666; font-size:0.9rem; margin-top:6px;"></p>
-      </div>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, getDoc } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-      <!-- My Orders (User can see status) -->
-      <div class="section" style="margin-top:14px;">
-        <div class="row" style="justify-content:space-between;">
-          <h3 style="margin:0;">My Orders</h3>
-          <button class="row-btn ghost" onclick="renderMyOrders()">Refresh</button>
-        </div>
-        <div class="list" id="my-orders-list"></div>
-      </div>
-    </div>
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
 
-    <!-- OWNER VIEW -->
-    <div id="owner-view" hidden>
-      <div class="grid-2">
-        <!-- Catalog -->
-        <div class="section">
-          <h3>Manage Rates (Catalog)</h3>
-          <input type="text" id="cat-name" placeholder="Item name (e.g., Tea)" />
-          <input type="number" id="cat-price" placeholder="Unit Price" step="0.01" min="0" />
-          <button onclick="addCatalogItem()" style="background: var(--success);">Add / Save Item</button>
-          <div class="list" id="catalog-list"></div>
-        </div>
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
 
-        <!-- Orders (Owner can set status) -->
-        <div class="section">
-          <div class="row" style="justify-content:space-between;">
-            <h3 style="margin:0;">Orders</h3>
-            <button class="row-btn danger" onclick="clearAllOrders()" title="Delete all orders">Clear All Orders</button>
-          </div>
-          <div class="list" id="orders-list"></div>
-        </div>
-      </div>
-    </div>
+const ownerEmail = "saikrishna@gmail.com"; // change to your email
 
-    <button class="logout-btn" onclick="logout()">Logout</button>
-  </section>
+window.register = async function(){
+  const email=document.getElementById("email").value;
+  const password=document.getElementById("password").value;
+  try{
+    await createUserWithEmailAndPassword(auth,email,password);
+    document.getElementById("auth-msg").innerText="Registered!";
+  }catch(e){alert(e.message);}
+}
 
-  <script>
-    /* ================== CONFIG ================== */
-    // Change this to your image (local path when opening the file locally, or a hosted URL when online)
-    const HERO_IMAGE = "C:\\even sem\\DTW\\websitepic.png";
-    // const HERO_IMAGE = "images/websitepic.png";
-    // const HERO_IMAGE = "https://your-cdn.com/websitepic.png";
+window.login = async function(){
+  const email=document.getElementById("email").value;
+  const password=document.getElementById("password").value;
+  try{
+    await signInWithEmailAndPassword(auth,email,password);
+  }catch(e){alert(e.message);}
+}
 
-    /* ================== STATE ================== */
-    let isLoginMode = true;
-    let filterQuery = "";
-    let editId = null;           // editing item id (user cart)
-    let editCatalogId = null;    // editing catalog item id
+window.logout = function(){ signOut(auth); }
 
-    // OWNER CREDENTIALS
-    const OWNER_DEFAULT = { username: 'saikrishna', password: 'sai@2006', role: 'owner' };
+onAuthStateChanged(auth,(user)=>{
+  if(user){
+    document.getElementById("auth-section").hidden=true;
+    document.getElementById("store-section").hidden=false;
 
-    // Order statuses
-    const ORDER_STATUSES = ['Pending','Accepted','Preparing','Ready','Out for Delivery','Completed','Cancelled'];
-    function statusClass(s) {
-      const t = (s||'').toLowerCase();
-      if (t==='pending') return 'st-pending';
-      if (t==='accepted') return 'st-accepted';
-      if (t==='preparing') return 'st-preparing';
-      if (t==='ready') return 'st-ready';
-      if (t==='out for delivery') return 'st-out';
-      if (t==='completed') return 'st-completed';
-      if (t==='cancelled') return 'st-cancelled';
-      return 'st-pending';
+    if(user.email===ownerEmail){
+      document.getElementById("owner-view").hidden=false;
+      document.getElementById("customer-view").hidden=true;
+      loadOrders();
+    }else{
+      document.getElementById("customer-view").hidden=false;
+      document.getElementById("owner-view").hidden=true;
+      loadProducts();
     }
-
-    /* ============== AUTH UI LOGIC ============== */
-    function toggleMode() {
-      isLoginMode = !isLoginMode;
-      document.getElementById('form-title').innerText = isLoginMode ? "Login" : "Create Account";
-      document.getElementById('toggle-text').innerHTML = isLoginMode
-        ? "Don't have an account? <span>Create one</span>"
-        : "Already have an account? <span>Login</span>";
-      setMessage("");
-    }
-
-    function handleSubmit() {
-      const user = document.getElementById('username').value.trim();
-      const pass = document.getElementById('password').value;
-      if (!user || !pass) return setMessage("Fill all fields", "red");
-
-      let users = getUsers();
-
-      if (isLoginMode) {
-        const found = users.find(u => u.username === user && u.password === pass);
-        if (found) {
-          sessionStorage.setItem('session_user', found.username);
-          sessionStorage.setItem('session_role', found.role || 'user');
-          showDashboard(found.username);
-        } else {
-          setMessage("Invalid credentials", "red");
-        }
-      } else {
-        if (users.some(u => u.username === user)) return setMessage("Username already taken!", "red");
-        users.push({ username: user, password: pass, role: 'user', budget: [] });
-        setUsers(users);
-        setMessage("Account created! Please login.", "green");
-        toggleMode();
-      }
-    }
-
-    function showDashboard(username) {
-      const role = sessionStorage.getItem('session_role') || 'user';
-      document.getElementById('dash-title').innerText = `Hello, ${username}!`;
-
-      // Hide login layout; show dashboard
-      document.getElementById('login-layout').hidden = true;
-      document.getElementById('dashboard-view').hidden = false;
-
-      if (role === 'owner') {
-        document.getElementById('owner-view').hidden = false;
-        document.getElementById('user-view').hidden = true;
-        renderCatalog();
-        renderOrders();
-      } else {
-        document.getElementById('owner-view').hidden = true;
-        document.getElementById('user-view').hidden = false;
-        populateCatalogSelect();
-        renderBudget();
-        renderMyOrders();
-        setTimeout(() => document.getElementById('catalog-select').focus(), 0);
-      }
-    }
-
-    /* ============== STORAGE HELPERS ============== */
-    function getUsers() {
-      return JSON.parse(localStorage.getItem('web_users')) || [];
-    }
-    function setUsers(users) {
-      localStorage.setItem('web_users', JSON.stringify(users));
-    }
-    function getCurrentUserIdx(users) {
-      const currentUser = sessionStorage.getItem('session_user');
-      return users.findIndex(u => u.username === currentUser);
-    }
-
-    function getCatalog() {
-      return JSON.parse(localStorage.getItem('catalog')) || [];
-    }
-    function setCatalog(arr) {
-      localStorage.setItem('catalog', JSON.stringify(arr));
-    }
-
-    function getOrders() {
-      return JSON.parse(localStorage.getItem('orders')) || [];
-    }
-    function setOrders(arr) {
-      localStorage.setItem('orders', JSON.stringify(arr));
-    }
-
-    /* ============== UTILITIES ============== */
-    function formatMoney(n) {
-      const val = Number.isFinite(n) ? n : 0;
-      return `$${val.toFixed(2)}`;
-    }
-    function genId() {
-      return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    }
-    function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-    function byId(id){ return document.getElementById(id); }
-
-    /* ============== USER CART / BUDGET ============== */
-    function populateCatalogSelect() {
-      const sel = byId('catalog-select');
-      const hint = byId('unit-hint');
-      const catalog = getCatalog();
-
-      sel.innerHTML = "";
-      if (catalog.length === 0) {
-        const opt = document.createElement('option');
-        opt.value = "";
-        opt.textContent = "No items available (owner has not set rates)";
-        sel.appendChild(opt);
-        sel.disabled = true;
-        hint.textContent = "";
-      } else {
-        sel.disabled = false;
-        catalog.forEach(item => {
-          const opt = document.createElement('option');
-          opt.value = item.id;
-          opt.textContent = `${item.name} — ${formatMoney(Number(item.price))}`;
-          sel.appendChild(opt);
-        });
-        const first = catalog[0];
-        hint.textContent = `Selected: ${first.name} @ ${formatMoney(Number(first.price))}/unit`;
-        sel.onchange = () => {
-          const it = catalog.find(c => c.id === sel.value);
-          hint.textContent = it ? `Selected: ${it.name} @ ${formatMoney(Number(it.price))}/unit` : "";
-        };
-      }
-    }
-
-    function addBudgetItem() {
-      const sel = byId('catalog-select');
-      const qtyEl = byId('item-qty');
-      const qty = parseInt(qtyEl.value, 10);
-
-      const catalog = getCatalog();
-      const selected = catalog.find(c => c.id === sel.value);
-      if (!selected) return;
-      if (!Number.isFinite(qty) || qty <= 0) return;
-
-      let users = getUsers();
-      const idx = getCurrentUserIdx(users);
-      if (idx === -1) return;
-
-      if (!Array.isArray(users[idx].budget)) users[idx].budget = [];
-
-      const unitPrice = Number(selected.price);
-      users[idx].budget.push({
-        id: genId(),
-        itemId: selected.id,
-        name: selected.name,
-        qty: qty,
-        unitPrice: Number(unitPrice.toFixed(2)),
-        amount: Number((qty * unitPrice).toFixed(2))
-      });
-      setUsers(users);
-
-      qtyEl.value = "";
-      renderBudget();
-      qtyEl.focus();
-    }
-
-    function deleteBudgetItem(itemId) {
-      let users = getUsers();
-      const idx = getCurrentUserIdx(users);
-      if (idx === -1) return;
-
-      users[idx].budget = (users[idx].budget || []).filter(it => it.id !== itemId);
-      setUsers(users);
-      if (editId === itemId) editId = null;
-      renderBudget();
-    }
-
-    function clearAllBudget() {
-      if (!confirm("Clear the entire cart? This cannot be undone.")) return;
-      let users = getUsers();
-      const idx = getCurrentUserIdx(users);
-      if (idx === -1) return;
-      users[idx].budget = [];
-      setUsers(users);
-      editId = null;
-      renderBudget();
-    }
-
-    function setFilter(q) {
-      filterQuery = (q || "").trim().toLowerCase();
-      const hint = byId('filter-hint');
-      hint.hidden = filterQuery.length === 0;
-      renderBudget();
-    }
-    function resetFilter() {
-      filterQuery = "";
-      byId('search-input').value = "";
-      byId('filter-hint').hidden = true;
-      renderBudget();
-    }
-
-    function beginEdit(itemId) {
-      editId = itemId;
-      renderBudget(() => {
-        const el = document.querySelector(`.budget-item[data-id="${CSS.escape(itemId)}"] select[name="edit-item"]`);
-        if (el) el.focus();
-      });
-    }
-    function cancelEdit() {
-      editId = null;
-      renderBudget();
-    }
-
-    function saveEdit(itemId) {
-      const row = document.querySelector(`.budget-item[data-id="${CSS.escape(itemId)}"]`);
-      if (!row) return;
-
-      const sel = row.querySelector('select[name="edit-item"]');
-      const qtyVal = parseInt(row.querySelector('input[name="edit-qty"]').value, 10);
-
-      let users = getUsers();
-      const idx = getCurrentUserIdx(users);
-      if (idx === -1) return;
-
-      const items = users[idx].budget || [];
-      const itemIndex = items.findIndex(it => it.id === itemId);
-      if (itemIndex === -1) return;
-
-      const catalog = getCatalog();
-      const chosen = catalog.find(c => c.id === sel.value);
-      if (!chosen) return;
-      if (!Number.isFinite(qtyVal) || qtyVal <= 0) return;
-
-      const unit = Number(chosen.price);
-      items[itemIndex] = {
-        ...items[itemIndex],
-        itemId: chosen.id,
-        name: chosen.name,
-        qty: qtyVal,
-        unitPrice: Number(unit.toFixed(2)),
-        amount: Number((qtyVal * unit).toFixed(2))
-      };
-
-      users[idx].budget = items;
-      setUsers(users);
-
-      editId = null;
-      renderBudget();
-    }
-
-    function handleEditKey(event, itemId) {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        saveEdit(itemId);
-      } else if (event.key === "Escape") {
-        event.preventDefault();
-        cancelEdit();
-      }
-    }
-
-    function renderBudget(afterRenderCb) {
-      const users = getUsers();
-      const idx = getCurrentUserIdx(users);
-      const userData = idx >= 0 ? users[idx] : { budget: [] };
-
-      const listDiv = byId('budget-list');
-      const totalEl = byId('total-amount');
-      const totalLbl = byId('total-label');
-      const totalQtyEl = byId('total-qty');
-
-      listDiv.innerHTML = "";
-
-      const items = Array.isArray(userData.budget) ? userData.budget : [];
-
-      const norm = s => String(s).toLowerCase();
-      const filtered = filterQuery
-        ? items.filter(it =>
-            norm(it.name).includes(filterQuery) ||
-            norm(it.qty).includes(filterQuery) ||
-            norm(it.amount).includes(filterQuery)
-          )
-        : items;
-
-      const totalAll = items.reduce((acc, it) => acc + (Number.isFinite(+it.amount) ? +it.amount : 0), 0);
-      const totalFiltered = filtered.reduce((acc, it) => acc + (Number.isFinite(+it.amount) ? +it.amount : 0), 0);
-      const qtyAll = items.reduce((acc, it) => acc + (Number.isFinite(+it.qty) ? +it.qty : 0), 0);
-      const qtyFiltered = filtered.reduce((acc, it) => acc + (Number.isFinite(+it.qty) ? +it.qty : 0), 0);
-
-      totalEl.textContent = formatMoney(filterQuery ? totalFiltered : totalAll);
-      totalLbl.textContent = filterQuery ? "Total (filtered)" : "Total";
-      totalQtyEl.textContent = `Qty: ${filterQuery ? qtyFiltered : qtyAll}`;
-
-      if (filtered.length === 0) {
-        const empty = document.createElement('div');
-        empty.style.color = '#888';
-        empty.style.textAlign = 'center';
-        empty.style.padding = '8px';
-        empty.textContent = filterQuery ? 'No items match your search.' : 'Your cart is empty. Add items from Catalog.';
-        listDiv.appendChild(empty);
-      } else {
-        const catalog = getCatalog();
-
-        filtered.forEach(item => {
-          const isEditing = editId === item.id;
-          const row = document.createElement('div');
-          row.className = 'budget-item' + (isEditing ? ' editing' : '');
-          row.dataset.id = item.id;
-
-          if (!isEditing) {
-            row.innerHTML = `
-              <div class="budget-row">
-                <span class="name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span>
-                <span class="qty">Qty: <strong>${Number(item.qty)}</strong></span>
-                <span class="unit-price">${formatMoney(Number(item.unitPrice))}/unit</span>
-                <strong class="amount">${formatMoney(Number(item.amount))}</strong>
-                <button class="row-btn secondary" onclick="beginEdit('${item.id}')">Edit</button>
-                <button class="row-btn danger" aria-label="Delete item" onclick="deleteBudgetItem('${item.id}')">Delete</button>
-              </div>
-            `;
-          } else {
-            const options = catalog.map(c => `<option value="${c.id}" ${c.id===item.itemId?'selected':''}>
-              ${escapeHtml(c.name)} — ${formatMoney(Number(c.price))}
-            </option>`).join('');
-            row.innerHTML = `
-              <div class="budget-row">
-                <select name="edit-item">${options}</select>
-                <input type="number" name="edit-qty" value="${Number(item.qty)}" step="1" min="1" />
-                <span></span>
-                <span></span>
-                <button class="row-btn success" onclick="saveEdit('${item.id}')">Save</button>
-                <button class="row-btn warning" onclick="cancelEdit()">Cancel</button>
-              </div>
-            `;
-            setTimeout(() => {
-              const sel = row.querySelector('select[name="edit-item"]');
-              const qty = row.querySelector('input[name="edit-qty"]');
-              sel.addEventListener('keydown', e => handleEditKey(e, item.id));
-              qty.addEventListener('keydown', e => handleEditKey(e, item.id));
-            }, 0);
-          }
-
-          listDiv.appendChild(row);
-        });
-      }
-
-      const user = sessionStorage.getItem('session_user');
-      byId('user-info').textContent = user ? `Logged in as: ${user}` : "";
-
-      if (typeof afterRenderCb === 'function') afterRenderCb();
-    }
-
-    /* ============== PLACE ORDER (default status: Pending) ============== */
-    function placeOrder() {
-      const users = getUsers();
-      const idx = getCurrentUserIdx(users);
-      if (idx === -1) return;
-
-      const cart = Array.isArray(users[idx].budget) ? users[idx].budget : [];
-      if (cart.length === 0) {
-        alert("Your cart is empty.");
-        return;
-      }
-      const total = cart.reduce((acc, it) => acc + (Number.isFinite(+it.amount) ? +it.amount : 0), 0);
-      const comment = (byId('user-comment').value || '').trim();
-
-      if (!confirm(`Place order totaling ${formatMoney(total)}?`)) return;
-
-      const orders = getOrders();
-      orders.push({
-        id: genId(),
-        user: users[idx].username,
-        items: cart.map(c => ({
-          name: c.name, qty: Number(c.qty), unitPrice: Number(c.unitPrice),
-          amount: Number(c.amount)
-        })),
-        total: Number(total.toFixed(2)),
-        comment: comment,
-        status: 'Pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-      setOrders(orders);
-
-      // clear cart & comment
-      users[idx].budget = [];
-      setUsers(users);
-      byId('user-comment').value = "";
-      renderBudget();
-      renderMyOrders();
-
-      alert("Order placed successfully.");
-    }
-
-    /* ============== OWNER: CATALOG (RATES) ============== */
-    function addCatalogItem() {
-      const nameEl = byId('cat-name');
-      const priceEl = byId('cat-price');
-      const name = nameEl.value.trim();
-      const price = parseFloat(priceEl.value);
-      if (!name) return;
-      if (!Number.isFinite(price) || price < 0) return;
-
-      let catalog = getCatalog();
-
-      if (editCatalogId) {
-        const i = catalog.findIndex(c => c.id === editCatalogId);
-        if (i >= 0) {
-          catalog[i].name = name;
-          catalog[i].price = Number(price.toFixed(2));
-        }
-        editCatalogId = null;
-      } else {
-        catalog.push({ id: genId(), name, price: Number(price.toFixed(2)) });
-      }
-
-      setCatalog(catalog);
-      nameEl.value = "";
-      priceEl.value = "";
-      renderCatalog();
-    }
-
-    function beginEditCatalog(id) {
-      const catalog = getCatalog();
-      const it = catalog.find(c => c.id === id);
-      if (!it) return;
-      editCatalogId = id;
-      byId('cat-name').value = it.name;
-      byId('cat-price').value = Number(it.price).toFixed(2);
-      byId('cat-name').focus();
-    }
-
-    function deleteCatalogItem(id) {
-      if (!confirm("Delete this catalog item?")) return;
-      let catalog = getCatalog().filter(c => c.id !== id);
-      if (editCatalogId === id) editCatalogId = null;
-      setCatalog(catalog);
-      renderCatalog();
-    }
-
-    function renderCatalog() {
-      const list = byId('catalog-list');
-      const catalog = getCatalog();
-      list.innerHTML = "";
-
-      if (catalog.length === 0) {
-        const empty = document.createElement('div');
-        empty.style.color = '#888';
-        empty.style.textAlign = 'center';
-        empty.style.padding = '8px';
-        empty.textContent = 'No catalog items yet. Add rates above.';
-        list.appendChild(empty);
-      } else {
-        catalog.forEach(item => {
-          const div = document.createElement('div');
-          div.className = 'catalog-item';
-          div.innerHTML = `
-            <div class="budget-row" style="grid-template-columns: 1fr .8fr auto auto;">
-              <span class="name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span>
-              <strong class="unit-price">${formatMoney(Number(item.price))}</strong>
-              <button class="row-btn secondary" onclick="beginEditCatalog('${item.id}')">Edit</button>
-              <button class="row-btn danger" onclick="deleteCatalogItem('${item.id}')">Delete</button>
-            </div>
-          `;
-          list.appendChild(div);
-        });
-      }
-    }
-
-    /* ============== OWNER: ORDERS (set status) ============== */
-    function renderOrders() {
-      const list = byId('orders-list');
-      const orders = getOrders().slice().reverse(); // newest first
-      list.innerHTML = "";
-
-      if (orders.length === 0) {
-        const empty = document.createElement('div');
-        empty.style.color = '#888';
-        empty.style.textAlign = 'center';
-        empty.style.padding = '8px';
-        empty.textContent = 'No orders yet.';
-        list.appendChild(empty);
-        return;
-      }
-
-      orders.forEach(o => {
-        const div = document.createElement('div');
-        div.className = 'order-card';
-        const d = new Date(o.createdAt);
-        const when = isNaN(d) ? o.createdAt : d.toLocaleString();
-
-        const itemsHtml = (o.items || []).map(i =>
-          `<li>${escapeHtml(i.name)} — Qty ${i.qty} @ ${formatMoney(i.unitPrice)} = <strong>${formatMoney(i.amount)}</strong></li>`
-        ).join('');
-
-        const commentHtml = (o.comment && o.comment.trim().length)
-          ? `<div style="margin-top:6px; padding:8px; background:#fff; border:1px dashed #ddd; border-radius:8px;">
-               <strong>Comment:</strong> ${escapeHtml(o.comment)}
-             </div>`
-          : '';
-
-        const currSt = o.status || 'Pending';
-        const opts = ORDER_STATUSES.map(s => `<option ${s===currSt?'selected':''}>${s}</option>`).join('');
-
-        div.innerHTML = `
-          <div class="order-head" style="align-items:center;">
-            <div><strong>Order:</strong> ${o.id}</div>
-            <div class="row">
-              <span class="status ${statusClass(currSt)}" title="Current status">${escapeHtml(currSt)}</span>
-              <small>${when}</small>
-              <strong>${formatMoney(Number(o.total || 0))}</strong>
-            </div>
-          </div>
-
-          <div class="row" style="gap:10px; margin-top:6px;">
-            <label class="w-auto"><strong>Set status:</strong></label>
-            <select class="w-auto" onchange="updateOrderStatus('${o.id}', this.value)">${opts}</select>
-            <button class="row-btn ghost" onclick="clearOrderItems('${o.id}')" title="Make this order empty but keep the record">Clear Items</button>
-            <button class="row-btn danger" onclick="removeOrder('${o.id}')" title="Delete this order permanently">Remove Order</button>
-          </div>
-
-          <ul class="order-items">${itemsHtml || '<li style="color:#999;">(No items)</li>'}</ul>
-          ${commentHtml}
-        `;
-        list.appendChild(div);
-      });
-    }
-
-    function updateOrderStatus(orderId, newStatus) {
-      const orders = getOrders();
-      const idx = orders.findIndex(o => o.id === orderId);
-      if (idx < 0) return;
-      orders[idx].status = newStatus;
-      orders[idx].updatedAt = new Date().toISOString();
-      setOrders(orders);
-      renderOrders();
-
-      // If a user is viewing “My Orders” (in another tab), they’ll see the update on refresh/visibility change
-      const role = sessionStorage.getItem('session_role');
-      if (role !== 'owner') renderMyOrders();
-    }
-
-    function removeOrder(orderId) {
-      if (!confirm("Remove this order? This cannot be undone.")) return;
-      const orders = getOrders().filter(o => o.id !== orderId);
-      setOrders(orders);
-      renderOrders();
-    }
-
-    function clearOrderItems(orderId) {
-      if (!confirm("Clear all items from this order?")) return;
-      const orders = getOrders();
-      const idx = orders.findIndex(o => o.id === orderId);
-      if (idx >= 0) {
-        orders[idx].items = [];
-        orders[idx].total = 0;
-        orders[idx].updatedAt = new Date().toISOString();
-        setOrders(orders);
-        renderOrders();
-      }
-    }
-
-    function clearAllOrders() {
-      if (!confirm("Clear ALL orders? This cannot be undone.")) return;
-      setOrders([]);
-      renderOrders();
-    }
-
-    /* ============== USER: MY ORDERS (show status) ============== */
-    function renderMyOrders() {
-      const list = byId('my-orders-list');
-      const user = sessionStorage.getItem('session_user');
-      const orders = getOrders().filter(o => o.user === user).slice().reverse();
-      list.innerHTML = "";
-
-      if (orders.length === 0) {
-        const empty = document.createElement('div');
-        empty.style.color = '#888';
-        empty.style.textAlign = 'center';
-        empty.style.padding = '8px';
-        empty.textContent = 'No orders yet. Place your first order!';
-        list.appendChild(empty);
-        return;
-      }
-
-      orders.forEach(o => {
-        const d1 = new Date(o.createdAt);
-        const d2 = o.updatedAt ? new Date(o.updatedAt) : null;
-        const created = isNaN(d1) ? o.createdAt : d1.toLocaleString();
-        const updated = d2 && !isNaN(d2) ? d2.toLocaleString() : null;
-        const itemsHtml = (o.items || []).map(i =>
-          `<li>${escapeHtml(i.name)} — Qty ${i.qty} @ ${formatMoney(i.unitPrice)} = <strong>${formatMoney(i.amount)}</strong></li>`
-        ).join('');
-        const st = o.status || 'Pending';
-
-        const card = document.createElement('div');
-        card.className = 'user-order-card';
-        card.innerHTML = `
-          <div class="row" style="justify-content:space-between;">
-            <div><strong>Order:</strong> ${o.id}</div>
-            <div class="row">
-              <span class="status ${statusClass(st)}">${escapeHtml(st)}</span>
-              <strong>${formatMoney(Number(o.total || 0))}</strong>
-            </div>
-          </div>
-          <div style="display:flex; justify-content:space-between; margin-top:4px;">
-            <small>Placed: ${created}</small>
-            ${updated ? `<small>Updated: ${updated}</small>` : ''}
-          </div>
-          <ul class="order-items" style="margin-top:6px;">${itemsHtml || '<li style="color:#999;">(No items)</li>'}</ul>
-          ${o.comment ? `<div style="margin-top:6px; padding:8px; background:#fff; border:1px dashed #ddd; border-radius:8px;">
-              <strong>Your comment:</strong> ${escapeHtml(o.comment)}
-            </div>` : ''}
-        `;
-        list.appendChild(card);
-      });
-    }
-
-    /* ============== SESSION / MISC ============== */
-    function logout() {
-      sessionStorage.removeItem('session_user');
-      sessionStorage.removeItem('session_role');
-      // Show login layout again
-      document.getElementById('dashboard-view').hidden = true;
-      document.getElementById('login-layout').hidden = false;
-      // Reapply hero image in case navigation changed
-      applyHeroImage();
-      window.scrollTo(0, 0);
-    }
-    function setMessage(t, c) {
-      const m = byId('msg');
-      m.innerText = t;
-      m.style.color = c || "#333";
-    }
-
-    function applyHeroImage() {
-      const el = document.getElementById('hero-bg');
-      if (el) el.style.backgroundImage = `url("${HERO_IMAGE}")`;
-    }
-
-    (function init() {
-      // Apply hero background
-      applyHeroImage();
-
-      // Seed owner if missing
-      let users = getUsers();
-      if (!users.some(u => u.role === 'owner')) {
-        users.push({ ...OWNER_DEFAULT, budget: [] });
-        setUsers(users);
-      }
-      const user = sessionStorage.getItem('session_user');
-      if (user) showDashboard(user);
-    })();
-
-    // Refresh different panels on tab focus
-    document.addEventListener('visibilitychange', () => {
-      const role = sessionStorage.getItem('session_role');
-      if (document.visibilityState === 'visible' && role === 'owner') {
-        renderOrders();
-        renderCatalog();
-      }
-      if (document.visibilityState === 'visible' && role !== 'owner') {
-        renderMyOrders();
-      }
-    });
-  </script>
+  }else{
+    document.getElementById("auth-section").hidden=false;
+    document.getElementById("store-section").hidden=true;
+  }
+});
+
+async function loadProducts(){
+  const snapshot=await getDocs(collection(db,"products"));
+  const select=document.getElementById("product-select");
+  const list=document.getElementById("product-list");
+  select.innerHTML="";
+  list.innerHTML="";
+  snapshot.forEach(docSnap=>{
+    const data=docSnap.data();
+    select.innerHTML+=`<option value="${docSnap.id}">${data.name} - ₹${data.price}</option>`;
+    list.innerHTML+=`<div>${data.name} - ₹${data.price}</div>`;
+  });
+}
+
+window.addProduct = async function(){
+  const name=document.getElementById("new-product").value;
+  const price=document.getElementById("new-price").value;
+  await addDoc(collection(db,"products"),{name,price});
+  alert("Product Added");
+}
+
+window.placeOrder = async function(){
+  const user=auth.currentUser;
+  const productId=document.getElementById("product-select").value;
+  const qty=document.getElementById("quantity").value;
+
+  const name=document.getElementById("name").value;
+  const phone=document.getElementById("phone").value;
+  const address=document.getElementById("address").value;
+
+  const productRef=doc(db,"products",productId);
+  const productSnap=await getDoc(productRef);
+  const productData=productSnap.data();
+
+  await addDoc(collection(db,"orders"),{
+    userEmail:user.email,
+    name,
+    phone,
+    address,
+    product:productData.name,
+    price:productData.price,
+    quantity:qty,
+    total:productData.price*qty,
+    status:"Pending",
+    created:new Date()
+  });
+
+  alert("Order Placed!");
+}
+
+async function loadOrders(){
+  const snapshot=await getDocs(collection(db,"orders"));
+  const div=document.getElementById("all-orders");
+  div.innerHTML="";
+  snapshot.forEach(docSnap=>{
+    const o=docSnap.data();
+    div.innerHTML+=`
+    <div class="order">
+      <b>${o.name}</b> (${o.userEmail})<br>
+      Phone: ${o.phone}<br>
+      Address: ${o.address}<br>
+      Product: ${o.product}<br>
+      Qty: ${o.quantity}<br>
+      Total: ₹${o.total}<br>
+      Status: ${o.status}
+    </div>`;
+  });
+}
+
+</script>
 </body>
 </html>
