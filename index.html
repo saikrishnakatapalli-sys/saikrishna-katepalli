@@ -1,195 +1,178 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Global Online Store</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-body{font-family:Arial;margin:0;padding:20px;background:#f4f6ff}
-.card{background:#fff;padding:20px;border-radius:10px;margin-bottom:20px}
-input,textarea,select{width:100%;padding:8px;margin:5px 0}
-button{padding:8px 12px;margin-top:5px;background:#0066ff;color:#fff;border:none;border-radius:6px;cursor:pointer}
-button:hover{background:#004ecc}
-.owner{background:#ffecec}
-.order{border:1px solid #ddd;padding:10px;margin:10px 0;border-radius:6px}
-</style>
+  <title>Saikrishna Global Store</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    input, button { margin: 5px; padding: 8px; }
+    .box { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+    .hidden { display: none; }
+  </style>
 </head>
 <body>
 
-<h2>Online Store</h2>
+<h2>🌍 Saikrishna Online Store</h2>
 
-<div id="auth-section" class="card">
-<h3>Login / Register</h3>
-<input type="email" id="email" placeholder="Email">
-<input type="password" id="password" placeholder="Password">
-<button onclick="register()">Register</button>
-<button onclick="login()">Login</button>
-<p id="auth-msg"></p>
+<div id="authSection">
+  <h3>Login / Register</h3>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="register()">Register</button>
+  <button onclick="login()">Login</button>
 </div>
 
-<div id="store-section" hidden>
+<div id="storeSection" class="hidden">
 
-<div id="customer-view" hidden class="card">
-<h3>Customer Details</h3>
-<input type="text" id="name" placeholder="Full Name">
-<input type="text" id="phone" placeholder="Phone">
-<textarea id="address" placeholder="Address"></textarea>
+  <button onclick="logout()">Logout</button>
 
-<h3>Products</h3>
-<div id="product-list"></div>
+  <h3>Add Product (Owner Only)</h3>
+  <input type="text" id="pname" placeholder="Product Name">
+  <input type="number" id="pprice" placeholder="Price">
+  <button onclick="addProduct()">Add Product</button>
 
-<h3>Place Order</h3>
-<select id="product-select"></select>
-<input type="number" id="quantity" placeholder="Quantity">
-<button onclick="placeOrder()">Place Order</button>
-</div>
+  <h3>Products</h3>
+  <div id="products"></div>
 
-<div id="owner-view" hidden class="card owner">
-<h3>Owner Panel</h3>
+  <h3>Orders (Owner Only)</h3>
+  <div id="orders"></div>
 
-<h4>Add Product</h4>
-<input type="text" id="new-product" placeholder="Product Name">
-<input type="number" id="new-price" placeholder="Price">
-<button onclick="addProduct()">Add Product</button>
-
-<h4>All Orders</h4>
-<div id="all-orders"></div>
-</div>
-
-<button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, doc, getDoc } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDteZoxSM2HeCqQ24uRva10Y1MFnCj0EZs",
+  authDomain: "saikrishna-e7b2e.firebaseapp.com",
+  projectId: "saikrishna-e7b2e",
+  storageBucket: "saikrishna-e7b2e.firebasestorage.app",
+  messagingSenderId: "2751968713",
+  appId: "1:2751968713:web:85dee1babc2cba9745a418"
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth();
-const db = getFirestore();
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-const ownerEmail = "saikrishna@gmail.com"; // change to your email
+const ownerEmail = "saikrishnakatapalli@gmail.com";
 
-window.register = async function(){
-  const email=document.getElementById("email").value;
-  const password=document.getElementById("password").value;
-  try{
-    await createUserWithEmailAndPassword(auth,email,password);
-    document.getElementById("auth-msg").innerText="Registered!";
-  }catch(e){alert(e.message);}
+window.register = async function() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    alert("Registered Successfully");
+  } catch (error) {
+    alert(error.message);
+  }
 }
 
-window.login = async function(){
-  const email=document.getElementById("email").value;
-  const password=document.getElementById("password").value;
-  try{
-    await signInWithEmailAndPassword(auth,email,password);
-  }catch(e){alert(e.message);}
+window.login = async function() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (error) {
+    alert(error.message);
+  }
 }
 
-window.logout = function(){ signOut(auth); }
+window.logout = async function() {
+  await signOut(auth);
+}
 
-onAuthStateChanged(auth,(user)=>{
-  if(user){
-    document.getElementById("auth-section").hidden=true;
-    document.getElementById("store-section").hidden=false;
-
-    if(user.email===ownerEmail){
-      document.getElementById("owner-view").hidden=false;
-      document.getElementById("customer-view").hidden=true;
+onAuthStateChanged(auth, user => {
+  if (user) {
+    document.getElementById("authSection").classList.add("hidden");
+    document.getElementById("storeSection").classList.remove("hidden");
+    loadProducts();
+    if (user.email === ownerEmail) {
       loadOrders();
-    }else{
-      document.getElementById("customer-view").hidden=false;
-      document.getElementById("owner-view").hidden=true;
-      loadProducts();
+    } else {
+      document.getElementById("orders").innerHTML = "";
     }
-  }else{
-    document.getElementById("auth-section").hidden=false;
-    document.getElementById("store-section").hidden=true;
+  } else {
+    document.getElementById("authSection").classList.remove("hidden");
+    document.getElementById("storeSection").classList.add("hidden");
   }
 });
 
-async function loadProducts(){
-  const snapshot=await getDocs(collection(db,"products"));
-  const select=document.getElementById("product-select");
-  const list=document.getElementById("product-list");
-  select.innerHTML="";
-  list.innerHTML="";
-  snapshot.forEach(docSnap=>{
-    const data=docSnap.data();
-    select.innerHTML+=`<option value="${docSnap.id}">${data.name} - ₹${data.price}</option>`;
-    list.innerHTML+=`<div>${data.name} - ₹${data.price}</div>`;
+window.addProduct = async function() {
+  const user = auth.currentUser;
+  if (!user || user.email !== ownerEmail) {
+    alert("Only Owner Can Add Products");
+    return;
+  }
+
+  const name = document.getElementById("pname").value;
+  const price = document.getElementById("pprice").value;
+
+  if (!name || !price) {
+    alert("Enter product name and price");
+    return;
+  }
+
+  await addDoc(collection(db, "catalog"), {
+    name: name,
+    price: price
+  });
+
+  alert("Product Added Successfully");
+  loadProducts();
+}
+
+async function loadProducts() {
+  const querySnapshot = await getDocs(collection(db, "catalog"));
+  const productsDiv = document.getElementById("products");
+  productsDiv.innerHTML = "";
+
+  querySnapshot.forEach(doc => {
+    const data = doc.data();
+    productsDiv.innerHTML += `
+      <div class="box">
+        <h4>${data.name}</h4>
+        <p>Price: ₹${data.price}</p>
+        <button onclick="orderProduct('${data.name}', '${data.price}')">Order</button>
+      </div>
+    `;
   });
 }
 
-window.addProduct = async function(){
-  const name=document.getElementById("new-product").value;
-  const price=document.getElementById("new-price").value;
-  await addDoc(collection(db,"products"),{name,price});
-  alert("Product Added");
-}
+window.orderProduct = async function(name, price) {
+  const user = auth.currentUser;
 
-window.placeOrder = async function(){
-  const user=auth.currentUser;
-  const productId=document.getElementById("product-select").value;
-  const qty=document.getElementById("quantity").value;
-
-  const name=document.getElementById("name").value;
-  const phone=document.getElementById("phone").value;
-  const address=document.getElementById("address").value;
-
-  const productRef=doc(db,"products",productId);
-  const productSnap=await getDoc(productRef);
-  const productData=productSnap.data();
-
-  await addDoc(collection(db,"orders"),{
-    userEmail:user.email,
-    name,
-    phone,
-    address,
-    product:productData.name,
-    price:productData.price,
-    quantity:qty,
-    total:productData.price*qty,
-    status:"Pending",
-    created:new Date()
+  await addDoc(collection(db, "orders"), {
+    product: name,
+    price: price,
+    customerEmail: user.email,
+    orderDate: new Date().toString()
   });
 
-  alert("Order Placed!");
+  alert("Order Placed Successfully");
 }
 
-async function loadOrders(){
-  const snapshot=await getDocs(collection(db,"orders"));
-  const div=document.getElementById("all-orders");
-  div.innerHTML="";
-  snapshot.forEach(docSnap=>{
-    const o=docSnap.data();
-    div.innerHTML+=`
-    <div class="order">
-      <b>${o.name}</b> (${o.userEmail})<br>
-      Phone: ${o.phone}<br>
-      Address: ${o.address}<br>
-      Product: ${o.product}<br>
-      Qty: ${o.quantity}<br>
-      Total: ₹${o.total}<br>
-      Status: ${o.status}
-    </div>`;
+async function loadOrders() {
+  const querySnapshot = await getDocs(collection(db, "orders"));
+  const ordersDiv = document.getElementById("orders");
+  ordersDiv.innerHTML = "";
+
+  querySnapshot.forEach(doc => {
+    const data = doc.data();
+    ordersDiv.innerHTML += `
+      <div class="box">
+        <p><b>Product:</b> ${data.product}</p>
+        <p><b>Price:</b> ₹${data.price}</p>
+        <p><b>Customer Email:</b> ${data.customerEmail}</p>
+        <p><b>Date:</b> ${data.orderDate}</p>
+      </div>
+    `;
   });
 }
 
 </script>
+
 </body>
 </html>
