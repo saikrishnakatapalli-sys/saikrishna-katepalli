@@ -1,174 +1,176 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Saikrishna Global Store</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Online Store</title>
   <style>
     body { font-family: Arial; margin: 20px; }
-    input, button { margin: 5px; padding: 8px; }
-    .box { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
     .hidden { display: none; }
+    .box { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+    button { margin: 5px 0; }
   </style>
 </head>
 <body>
 
-<h2>🌍 Saikrishna Online Store</h2>
+<h1>My Online Store</h1>
 
+<!-- Auth Section -->
 <div id="authSection">
   <h3>Login / Register</h3>
-  <input type="email" id="email" placeholder="Email">
-  <input type="password" id="password" placeholder="Password">
+  <input id="username" placeholder="Username"><br>
+  <input id="password" type="password" placeholder="Password"><br>
   <button onclick="register()">Register</button>
   <button onclick="login()">Login</button>
 </div>
 
-<div id="storeSection" class="hidden">
+<!-- Owner Panel -->
+<div id="ownerPanel" class="hidden">
+  <h2>Owner Panel</h2>
 
-  <button onclick="logout()">Logout</button>
-
-  <h3>Add Product (Owner Only)</h3>
-  <input type="text" id="pname" placeholder="Product Name">
-  <input type="number" id="pprice" placeholder="Price">
+  <h3>Add Product</h3>
+  <input id="pname" placeholder="Product Name"><br>
+  <input id="pprice" type="number" placeholder="Price"><br>
   <button onclick="addProduct()">Add Product</button>
 
-  <h3>Products</h3>
+  <h3>All Orders</h3>
+  <div id="orders"></div>
+</div>
+
+<!-- Customer Panel -->
+<div id="customerPanel" class="hidden">
+  <h2>Products</h2>
   <div id="products"></div>
 
-  <h3>Orders (Owner Only)</h3>
-  <div id="orders"></div>
-
+  <h3>Your Cart</h3>
+  <div id="cart"></div>
+  <button onclick="placeOrder()">Place Order</button>
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDteZoxSM2HeCqQ24uRva10Y1MFnCj0EZs",
-  authDomain: "saikrishna-e7b2e.firebaseapp.com",
-  projectId: "saikrishna-e7b2e",
-  storageBucket: "saikrishna-e7b2e.firebasestorage.app",
-  messagingSenderId: "2751968713",
-  appId: "1:2751968713:web:85dee1babc2cba9745a418"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_ID",
+  appId: "YOUR_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getFirestore(app);
 
-const ownerEmail = "saikrishnakatapalli@gmail.com";
+let currentUser = null;
+let cart = [];
 
-window.register = async function() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  try {
-    await createUserWithEmailAndPassword(auth, email, password);
-    alert("Registered Successfully");
-  } catch (error) {
-    alert(error.message);
-  }
+/* ---------------- LOCAL USER SYSTEM ---------------- */
+
+function getUsers(){
+  return JSON.parse(localStorage.getItem("users") || "[]");
 }
 
-window.login = async function() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-  } catch (error) {
-    alert(error.message);
-  }
+function setUsers(u){
+  localStorage.setItem("users", JSON.stringify(u));
 }
 
-window.logout = async function() {
-  await signOut(auth);
+window.register = function(){
+  const u = username.value;
+  const p = password.value;
+  const users = getUsers();
+  users.push({u,p});
+  setUsers(users);
+  alert("Registered!");
 }
 
-onAuthStateChanged(auth, user => {
-  if (user) {
-    document.getElementById("authSection").classList.add("hidden");
-    document.getElementById("storeSection").classList.remove("hidden");
+window.login = function(){
+  const u = username.value;
+  const p = password.value;
+  const users = getUsers();
+  const found = users.find(x => x.u===u && x.p===p);
+  if(!found){ alert("Invalid"); return; }
+
+  currentUser = u;
+  authSection.classList.add("hidden");
+
+  if(u === "admin"){   // OWNER USERNAME
+    ownerPanel.classList.remove("hidden");
+    loadOrders();
+  }else{
+    customerPanel.classList.remove("hidden");
     loadProducts();
-    if (user.email === ownerEmail) {
-      loadOrders();
-    } else {
-      document.getElementById("orders").innerHTML = "";
-    }
-  } else {
-    document.getElementById("authSection").classList.remove("hidden");
-    document.getElementById("storeSection").classList.add("hidden");
   }
-});
-
-window.addProduct = async function() {
-  const user = auth.currentUser;
-  if (!user || user.email !== ownerEmail) {
-    alert("Only Owner Can Add Products");
-    return;
-  }
-
-  const name = document.getElementById("pname").value;
-  const price = document.getElementById("pprice").value;
-
-  if (!name || !price) {
-    alert("Enter product name and price");
-    return;
-  }
-
-  await addDoc(collection(db, "catalog"), {
-    name: name,
-    price: price
-  });
-
-  alert("Product Added Successfully");
-  loadProducts();
 }
 
-async function loadProducts() {
-  const querySnapshot = await getDocs(collection(db, "catalog"));
-  const productsDiv = document.getElementById("products");
-  productsDiv.innerHTML = "";
+/* ---------------- PRODUCTS (GLOBAL) ---------------- */
 
-  querySnapshot.forEach(doc => {
-    const data = doc.data();
-    productsDiv.innerHTML += `
-      <div class="box">
-        <h4>${data.name}</h4>
-        <p>Price: ₹${data.price}</p>
-        <button onclick="orderProduct('${data.name}', '${data.price}')">Order</button>
-      </div>
+async function loadProducts(){
+  products.innerHTML="";
+  const snap = await getDocs(collection(db,"products"));
+  snap.forEach(doc=>{
+    const p = doc.data();
+    const div = document.createElement("div");
+    div.className="box";
+    div.innerHTML=`
+      ${p.name} - ₹${p.price}
+      <button onclick="addToCart('${p.name}',${p.price})">Add</button>
     `;
+    products.appendChild(div);
   });
 }
 
-window.orderProduct = async function(name, price) {
-  const user = auth.currentUser;
-
-  await addDoc(collection(db, "orders"), {
-    product: name,
-    price: price,
-    customerEmail: user.email,
-    orderDate: new Date().toString()
-  });
-
-  alert("Order Placed Successfully");
+window.addProduct = async function(){
+  const name = pname.value;
+  const price = Number(pprice.value);
+  await addDoc(collection(db,"products"),{name,price});
+  alert("Product Added Globally!");
 }
 
-async function loadOrders() {
-  const querySnapshot = await getDocs(collection(db, "orders"));
-  const ordersDiv = document.getElementById("orders");
-  ordersDiv.innerHTML = "";
+/* ---------------- CART ---------------- */
 
-  querySnapshot.forEach(doc => {
-    const data = doc.data();
-    ordersDiv.innerHTML += `
-      <div class="box">
-        <p><b>Product:</b> ${data.product}</p>
-        <p><b>Price:</b> ₹${data.price}</p>
-        <p><b>Customer Email:</b> ${data.customerEmail}</p>
-        <p><b>Date:</b> ${data.orderDate}</p>
-      </div>
+window.addToCart = function(name,price){
+  cart.push({name,price});
+  renderCart();
+}
+
+function renderCart(){
+  cartDiv = document.getElementById("cart");
+  cartDiv.innerHTML="";
+  cart.forEach((c,i)=>{
+    cartDiv.innerHTML += `${c.name} - ₹${c.price}<br>`;
+  });
+}
+
+/* ---------------- ORDERS (GLOBAL) ---------------- */
+
+window.placeOrder = async function(){
+  if(cart.length===0){ alert("Cart Empty"); return; }
+
+  await addDoc(collection(db,"orders"),{
+    user: currentUser,
+    items: cart,
+    date: new Date().toLocaleString()
+  });
+
+  alert("Order Placed!");
+  cart=[];
+  renderCart();
+}
+
+async function loadOrders(){
+  orders.innerHTML="";
+  const snap = await getDocs(collection(db,"orders"));
+  snap.forEach(doc=>{
+    const o = doc.data();
+    const div = document.createElement("div");
+    div.className="box";
+    div.innerHTML=`
+      <b>User:</b> ${o.user}<br>
+      <b>Date:</b> ${o.date}<br>
+      <b>Items:</b><br>
+      ${o.items.map(i=>i.name+" - ₹"+i.price).join("<br>")}
     `;
+    orders.appendChild(div);
   });
 }
 
