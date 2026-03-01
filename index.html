@@ -1,180 +1,632 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="dark">
 <head>
-  <title>My Online Store</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sai Calculator + Geometry</title>
   <style>
-    body { font-family: Arial; margin: 20px; }
-    .hidden { display: none; }
-    .box { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
-    button { margin: 5px 0; }
+    :root{
+      color-scheme: dark light;
+      --bg:#0f1220; --fg:#e7e9ee; --card:#171a2b; --muted:#a9afc3;
+      --border:#2b2f46; --brand:#7c9cff; --accent:#0bbbdc; --good:#17c964; --bad:#ff6b6b;
+    }
+    html[data-theme="light"]{
+      --bg:#f6f7fb; --fg:#101526; --card:#ffffff; --muted:#56627a; --border:#e5e8f0;
+      --brand:#315efb; --accent:#0bbbdc;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,Segoe UI,Roboto,Arial}
+    header{padding:1.25rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem}
+    header h1{font-size:1.15rem;margin:0}
+    .theme{margin-left:auto;background:transparent;border:1px solid var(--border);color:var(--fg);
+      padding:.45rem .6rem;border-radius:.55rem;cursor:pointer}
+    main{max-width:900px;margin:0 auto;padding:1.25rem}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:1rem;padding:1rem;box-shadow:0 8px 28px rgba(0,0,0,.25)}
+    .row{display:grid;grid-template-columns:1fr auto;gap:.6rem}
+    input[type="text"], select, input[type="number"]{
+      width:100%;padding:.7rem .8rem;border-radius:.6rem;border:1px solid var(--border);background:var(--bg);color:var(--fg)
+    }
+    .btn{padding:.7rem .9rem;border-radius:.6rem;border:1px solid var(--border);background:var(--brand);color:#fff;cursor:pointer}
+    .ghost{background:transparent;color:var(--fg)}
+    .out{margin-top:.9rem;padding:.8rem;border-radius:.7rem;border:1px dashed var(--border);background:rgba(0,0,0,.03)}
+    .small{color:var(--muted);font-size:.9rem}
+    .log{margin-top:1rem;display:grid;gap:.6rem;max-height:340px;overflow:auto}
+    .msg{border:1px solid var(--border);border-radius:.8rem;padding:.6rem .7rem}
+    .user{background:rgba(124,156,255,.12)}
+    .ai{background:rgba(11,187,220,.10)}
+    code{background:rgba(0,0,0,.16);padding:.1rem .3rem;border-radius:.3rem}
+    .ok{color:var(--good)} .err{color:var(--bad)}
+    footer{padding:1rem;color:var(--muted);text-align:center}
+
+    /* Collapsible “folder” for geometry */
+    details.geometry { margin-top:1rem; }
+    details.geometry > summary{
+      cursor:pointer; list-style:none; display:flex; align-items:center; gap:.6rem;
+      font-weight:600; padding:.4rem 0;
+    }
+    details.geometry > summary::before{
+      content:"📁"; font-size:1.1rem;
+    }
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem}
+    .hint{font-size:.85rem;color:var(--muted);margin-top:.25rem}
+    .divider{height:1px;background:var(--border);margin:.8rem 0}
   </style>
 </head>
 <body>
+  <header>
+    <h1>Balaji Scientific Calculator</h1>
+    <button id="themeToggle" class="theme" title="Toggle theme">🌓 Theme</button>
+  </header>
 
-<h1>My Online Store</h1>
+  <main>
+    <!-- ─────────────────────────────────────────────────────────────
+         MAIN NATURAL-LANGUAGE / EXPRESSION CALCULATOR
+         (Examples row REMOVED as requested)
+    ─────────────────────────────────────────────────────────────── -->
+    <section class="card" aria-label="Sai calculator">
+      <p class="small">Type a math request in natural language or as an expression.</p>
+      <div class="row" style="margin-top:.5rem">
+        <input id="q" type="text" placeholder='e.g., (3+4)*5, "10% of 250", "convert 5 km to m", "solve x^2 - 5x + 6 = 0"' autofocus />
+        <button id="go" class="btn" aria-label="Calculate">Calculate ➤</button>
+      </div>
 
-<!-- Auth Section -->
-<div id="authSection">
-  <h3>Login / Register</h3>
-  <input id="username" placeholder="Username"><br>
-  <input id="password" type="password" placeholder="Password"><br>
-  <button onclick="register()">Register</button>
-  <button onclick="login()">Login</button>
-</div>
+      <!-- ⬇️ Removed the EXAMPLES strip that was circled in your screenshot -->
 
-<!-- Owner Panel -->
-<div id="ownerPanel" class="hidden">
-  <h2>Owner Panel</h2>
+      <div id="result" class="out" role="status" aria-live="polite"></div>
 
-  <h3>Add Product</h3>
-  <input id="pname" placeholder="Product Name"><br>
-  <input id="pprice" type="number" placeholder="Price"><br>
-  <button onclick="addProduct()">Add Product</button>
+      <div class="log" id="log" aria-label="History"></div>
 
-  <h3>All Orders</h3>
-  <div id="orders"></div>
-</div>
+      <div style="display:flex;gap:.5rem;margin-top:.7rem">
+        <button id="clr" class="btn ghost">Clear</button>
+        <button id="copy" class="btn ghost">Copy Result</button>
+      </div>
+    </section>
 
-<!-- Customer Panel -->
-<div id="customerPanel" class="hidden">
-  <h2>Products</h2>
-  <div id="products"></div>
+    <!-- ─────────────────────────────────────────────────────────────
+         GEOMETRY “FOLDER” (collapsible) — Area & Perimeter
+    ─────────────────────────────────────────────────────────────── -->
+    <details class="card geometry">
+      <summary>Geometry Toolbox — Area &amp; Perimeter</summary>
+      <div class="small hint">Pick a shape and what to compute. Fields appear automatically. All values use the same units.</div>
 
-  <h3>Your Cart</h3>
-  <div id="cart"></div>
-  <button onclick="placeOrder()">Place Order</button>
-</div>
+      <div class="grid-3" style="margin-top:.6rem">
+        <div>
+          <label for="shapeSel" class="small">Shape</label>
+          <select id="shapeSel">
+            <option value="rectangle">Rectangle</option>
+            <option value="square">Square</option>
+            <option value="circle">Circle</option>
+            <option value="triangle">Triangle</option>
+            <option value="parallelogram">Parallelogram</option>
+            <option value="trapezoid">Trapezoid</option>
+            <option value="ellipse">Ellipse</option>
+            <option value="regularPolygon">Regular Polygon</option>
+          </select>
+        </div>
+        <div>
+          <label for="whatSel" class="small">Compute</label>
+          <select id="whatSel">
+            <option value="area">Area</option>
+            <option value="perimeter">Perimeter</option>
+          </select>
+        </div>
+        <div id="variantWrap" style="display:none">
+          <label for="variantSel" class="small">Method</label>
+          <select id="variantSel"></select>
+        </div>
+      </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+      <div id="geoFields" style="margin-top:.7rem"></div>
+      <div class="divider"></div>
 
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_ID",
-  appId: "YOUR_APP_ID"
-};
+      <div class="grid-2">
+        <button id="geoCalc" class="btn">Compute</button>
+        <button id="geoClear" class="btn ghost">Clear</button>
+      </div>
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+      <div id="geoResult" class="out" style="margin-top:.7rem"></div>
+    </details>
 
-let currentUser = null;
-let cart = [];
+    <section class="card" style="margin-top:1rem">
+      <h3 style="margin:.2rem 0 .6rem">What can this do?</h3>
+      <ul class="small">
+        <li><strong>Expressions:</strong> `2+3*4`, `(3+7)/2`, `sqrt(81)`</li>
+        <li><strong>Words:</strong> “sum of 5 and 7”, “difference between 10 and 3”, “product of 8 and 6”</li>
+        <li><strong>Percent:</strong> “15% of 640”, “increase 500 by 12%”, “decrease 120 by 10%”</li>
+        <li><strong>Averages:</strong> “average of 10, 15, 20”</li>
+        <li><strong>Conversions:</strong> “convert 5 km to m”, “2 hours to minutes”, “2500 g to kg”</li>
+        <li><strong>Quadratic:</strong> “solve x^2 - 5x + 6 = 0”</li>
+        <li><strong>Geometry (new):</strong> Area/Perimeter for rectangle, square, circle, triangle, parallelogram, trapezoid, ellipse, regular polygon.</li>
+      </ul>
+    </section>
+  </main>
 
-/* ---------------- LOCAL USER SYSTEM ---------------- */
+  <footer>Built with vanilla HTML/CSS/JS — no external libraries.</footer>
 
-function getUsers(){
-  return JSON.parse(localStorage.getItem("users") || "[]");
-}
+  <script>
+    // === Theme toggle (persisted) ===
+    (function themeInit(){
+      const k='mini-ai-theme';
+      const saved = localStorage.getItem(k);
+      if(saved) document.documentElement.setAttribute('data-theme', saved);
+      document.getElementById('themeToggle').addEventListener('click', ()=>{
+        const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+        const next = cur==='dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem(k,next);
+      });
+    })();
 
-function setUsers(u){
-  localStorage.setItem("users", JSON.stringify(u));
-}
+    // === Shortcuts ===
+    const $ = sel => document.querySelector(sel);
 
-window.register = function(){
-  const u = username.value;
-  const p = password.value;
-  const users = getUsers();
-  users.push({u,p});
-  setUsers(users);
-  alert("Registered!");
-}
+    // ───────────────────────────────────────────────────────────────
+    // SAFE arithmetic evaluator for expressions
+    // ───────────────────────────────────────────────────────────────
+    function evalExpression(expr){
+      expr = expr.replace(/\^/g,'**');
+      const allowed = {
+        abs: Math.abs, acos: Math.acos, asin: Math.asin, atan: Math.atan, atan2: Math.atan2,
+        ceil: Math.ceil, cos: Math.cos, exp: Math.exp, floor: Math.floor, log: Math.log,
+        max: Math.max, min: Math.min, pow: Math.pow, random: Math.random, round: Math.round,
+        sign: Math.sign, sin: Math.sin, sqrt: Math.sqrt, tan: Math.tan, PI: Math.PI, E: Math.E
+      };
+      const names = Object.keys(allowed).join(',');
+      const values = Object.values(allowed);
+      if(!/^[\d\s+\-*/%^().,A-Za-z_]+$/.test(expr)) throw new Error('Unsupported characters in expression.');
+      // eslint-disable-next-line no-new-func
+      const fn = new Function(names, 'return (' + expr + ')');
+      return fn.apply(null, values);
+    }
 
-window.login = function(){
-  const u = username.value;
-  const p = password.value;
-  const users = getUsers();
-  const found = users.find(x => x.u===u && x.p===p);
-  if(!found){ alert("Invalid"); return; }
+    // ───────────────────────────────────────────────────────────────
+    // Natural-language mini parser (from the previous version)
+    // ───────────────────────────────────────────────────────────────
+    const resultEl = $('#result');
+    const logEl = $('#log');
 
-  currentUser = u;
-  authSection.classList.add("hidden");
+    function addLog(role, text){
+      const div = document.createElement('div');
+      div.className = 'msg ' + (role === 'user' ? 'user' : 'ai');
+      div.innerHTML = text;
+      logEl.prepend(div);
+    }
 
-  if(u === "admin"){   // OWNER USERNAME
-    ownerPanel.classList.remove("hidden");
-    loadOrders();
-  }else{
-    customerPanel.classList.remove("hidden");
-    loadProducts();
-  }
-}
+    function parseAndCompute(input){
+      const original = input;
+      let s = input.trim().toLowerCase();
+      if(!s) throw new Error('Please enter something to calculate.');
 
-/* ---------------- PRODUCTS (GLOBAL) ---------------- */
+      s = s.replace(/plus/g,'+')
+           .replace(/minus/g,'-')
+           .replace(/times|multiplied by|into/g,'*')
+           .replace(/divided by|over/g,'/')
+           .replace(/power of|to the power of/g,'^');
 
-async function loadProducts(){
-  products.innerHTML="";
-  const snap = await getDocs(collection(db,"products"));
-  snap.forEach(doc=>{
-    const p = doc.data();
-    const div = document.createElement("div");
-    div.className="box";
-    div.innerHTML=`
-      ${p.name} - ₹${p.price}
-      <button onclick="addToCart('${p.name}',${p.price})">Add</button>
-    `;
-    products.appendChild(div);
-  });
-}
+      let m = s.match(/(-?\d+(?:\.\d+)?)\s*%\s*of\s*(-?\d+(?:\.\d+)?)/);
+      if(m){
+        const p = parseFloat(m[1]), base = parseFloat(m[2]);
+        const val = (p/100)*base;
+        return { result: val, steps: [`Given: ${p}% of ${base}`, `${p}% = ${p}/100`, `Result = (${p}/100) × ${base} = <b>${val}</b>`] };
+      }
 
-window.addProduct = async function(){
-  const name = pname.value;
-  const price = Number(pprice.value);
-  await addDoc(collection(db,"products"),{name,price});
-  alert("Product Added Globally!");
-}
+      m = s.match(/(increase|decrease)\s*(-?\d+(?:\.\d+)?)\s*by\s*(-?\d+(?:\.\d+)?)\s*%/);
+      if(m){
+        const op = m[1], base = parseFloat(m[2]), p = parseFloat(m[3]);
+        const factor = op==='increase' ? 1 + p/100 : 1 - p/100;
+        const val = +(base * factor).toFixed(6);
+        return { result: val, steps: [`Base = ${base}`, `${op==='increase'?'+' : '−'}${p}% ⇒ factor = ${factor}`,
+                  `Result = ${base} × ${factor} = <b>${val}</b>`] };
+      }
 
-/* ---------------- CART ---------------- */
+      m = s.match(/average of ([\d\.\,\s\-]+)/);
+      if(m){
+        const nums = m[1].split(/[, ]+/).filter(Boolean).map(Number);
+        if(nums.some(isNaN)) throw new Error('Could not parse numbers for average.');
+        const sum = nums.reduce((a,b)=>a+b,0);
+        const avg = sum / nums.length;
+        return { result: +avg.toFixed(6), steps: [`Numbers = ${nums.join(', ')}`, `Sum = ${sum}`, `Average = Sum / ${nums.length} = <b>${avg}</b>`] };
+      }
 
-window.addToCart = function(name,price){
-  cart.push({name,price});
-  renderCart();
-}
+      m = s.match(/(sum|difference|product|quotient) of (-?\d+(?:\.\d+)?) and (-?\d+(?:\.\d+)?)/);
+      if(m){
+        const a = parseFloat(m[2]), b = parseFloat(m[3]);
+        const op = m[1];
+        const map = {sum: '+', difference: '-', product: '*', quotient: '/'};
+        const expr = `${a} ${map[op]} ${b}`;
+        const val = evalExpression(expr);
+        return { result: val, steps: [`Compute ${expr}`, `Result = <b>${val}</b>`] };
+      }
 
-function renderCart(){
-  cartDiv = document.getElementById("cart");
-  cartDiv.innerHTML="";
-  cart.forEach((c,i)=>{
-    cartDiv.innerHTML += `${c.name} - ₹${c.price}<br>`;
-  });
-}
+      m = s.match(/square\s*root of (-?\d+(?:\.\d+)?)/);
+      if(m){
+        const a = parseFloat(m[1]);
+        if(a < 0) throw new Error('Square root of a negative number is not a real number.');
+        const val = Math.sqrt(a);
+        return { result: val, steps: [`Compute √${a}`, `Result = <b>${val}</b>`] };
+      }
 
-/* ---------------- ORDERS (GLOBAL) ---------------- */
+      m = s.match(/(?:convert\s*)?(-?\d+(?:\.\d+)?)\s*(km|m|cm|mm|kg|g|h|hour|hours|min|s|sec|second|seconds)\s*(?:to|in)\s*(km|m|cm|mm|kg|g|h|hour|hours|min|s|sec|second|seconds)/);
+      if(m){
+        const qty = parseFloat(m[1]), from = m[2], to = m[3];
+        const norm = u=>{
+          if(['h','hour','hours'].includes(u)) return 'h';
+          if(['min'].includes(u)) return 'min';
+          if(['s','sec','second','seconds'].includes(u)) return 's';
+          return u;
+        };
+        const f = norm(from), t = norm(to);
+        const factors = { m:1, km:1000, cm:0.01, mm:0.001, g:1, kg:1000, s:1, min:60, h:3600 };
+        const baseOf = u => {
+          if(['m','km','cm','mm'].includes(u)) return 'm';
+          if(['g','kg'].includes(u)) return 'g';
+          if(['s','min','h'].includes(u)) return 's';
+          return null;
+        };
+        const baseA = baseOf(f), baseB = baseOf(t);
+        if(!baseA || !baseB || baseA !== baseB) throw new Error('Incompatible units for conversion.');
+        const base = qty * factors[f];
+        const out = base / factors[t];
+        return { result: +out.toFixed(6), steps: [`Convert ${qty} ${from} → ${to}`, `Base (${baseA}) value = ${qty}×${factors[f]} = ${base}`, `Result = ${base} ÷ ${factors[t]} = <b>${out}</b> ${to}`] };
+      }
 
-window.placeOrder = async function(){
-  if(cart.length===0){ alert("Cart Empty"); return; }
+      m = s.match(/solve\s*(.*)=\s*0/);
+      if(m){
+        const poly = m[1].replace(/\s+/g,'');
+        const norm = poly
+          .replace(/([+-])x\^2/g,'$11x^2')
+          .replace(/^x\^2/,'1x^2')
+          .replace(/([+-])x(?!\^)/g,'$11x')
+          .replace(/^x(?!\^)/,'1x');
+        const ax2 = norm.match(/([+-]?\d*\.?\d*)x\^2/);
+        const bx  = norm.match(/([+-]?\d*\.?\d*)x(?!\^)/);
+        const cOnly = norm.replace(/([+-]?\d*\.?\d*)x\^2/,'')
+                          .replace(/([+-]?\d*\.?\d*)x(?!\^)/,'');
+        const a = ax2 ? parseFloat(ax2[1] || '1') : 0;
+        const b = bx  ? parseFloat(bx[1]  || '1') : 0;
+        const c = cOnly ? parseFloat(cOnly || '0') : 0;
 
-  await addDoc(collection(db,"orders"),{
-    user: currentUser,
-    items: cart,
-    date: new Date().toLocaleString()
-  });
+        if(a === 0) throw new Error('Not a quadratic (a=0).');
+        const D = b*b - 4*a*c;
+        if(D < 0) {
+          const real = -b/(2*a);
+          const imag = Math.sqrt(-D)/(2*a);
+          return {
+            result: `x₁=${real.toFixed(6)} + ${imag.toFixed(6)}i, x₂=${real.toFixed(6)} - ${imag.toFixed(6)}i`,
+            steps: [
+              `a=${a}, b=${b}, c=${c}`,
+              `Discriminant D = b² − 4ac = ${b}² − 4·${a}·${c} = ${D}`,
+              `Complex roots: x = (-b ± √D) / (2a)`
+            ]
+          };
+        } else {
+          const x1 = (-b + Math.sqrt(D)) / (2*a);
+          const x2 = (-b - Math.sqrt(D)) / (2*a);
+          return {
+            result: `x₁=${+x1.toFixed(6)}, x₂=${+x2.toFixed(6)}`,
+            steps: [
+              `a=${a}, b=${b}, c=${c}`,
+              `D = b² − 4ac = ${b*b} − ${4*a*c} = ${D}`,
+              `x = (-b ± √D) / (2a)`,
+              `x₁ = ${x1}, x₂ = ${x2}`
+            ]
+          };
+        }
+      }
 
-  alert("Order Placed!");
-  cart=[];
-  renderCart();
-}
+      try{
+        const val = evalExpression(original);
+        return { result: val, steps: [`Evaluate expression: <code>${original}</code>`, `Result = <b>${val}</b>`] };
+      }catch(e){
+        throw new Error('Sorry, I could not understand that. Try: "10% of 250", "convert 5 km to m", "(3+4)*5", or "solve x^2 - 5x + 6 = 0".');
+      }
+    }
 
-async function loadOrders(){
-  orders.innerHTML="";
-  const snap = await getDocs(collection(db,"orders"));
-  snap.forEach(doc=>{
-    const o = doc.data();
-    const div = document.createElement("div");
-    div.className="box";
-    div.innerHTML=`
-      <b>User:</b> ${o.user}<br>
-      <b>Date:</b> ${o.date}<br>
-      <b>Items:</b><br>
-      ${o.items.map(i=>i.name+" - ₹"+i.price).join("<br>")}
-    `;
-    orders.appendChild(div);
-  });
-}
+    function render(output){
+      const {result, steps} = output;
+      const html = `
+        <div><strong class="ok">Result:</strong> ${typeof result==='number' ? +(+result).toFixed(6) : result}</div>
+        <div class="small">${steps.map(s=>`• ${s}`).join('<br>')}</div>
+      `;
+      resultEl.innerHTML = html;
+    }
 
-</script>
+    // Wire up main calculator
+    $('#go').addEventListener('click', handleMain);
+    $('#q').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); handleMain(); }});
+    $('#clr').addEventListener('click', ()=>{ $('#q').value=''; resultEl.textContent=''; logEl.innerHTML=''; });
+    $('#copy').addEventListener('click', ()=>{
+      const tmp = document.createElement('textarea');
+      tmp.value = resultEl.innerText.trim();
+      document.body.appendChild(tmp);
+      tmp.select(); document.execCommand('copy'); document.body.removeChild(tmp);
+      resultEl.insertAdjacentHTML('beforeend','<div class="small ok">Copied!</div>');
+      setTimeout(()=>{ const n = resultEl.querySelector('.ok'); n && n.remove(); }, 1200);
+    });
+    function handleMain(){
+      const text = $('#q').value.trim();
+      if(!text) return;
+      addLog('user', text);
+      try{
+        const out = parseAndCompute(text);
+        render(out);
+        addLog('ai', `<strong>Answer:</strong> ${typeof out.result==='number' ? +(+out.result).toFixed(6) : out.result}<br><span class="small">${out.steps.join('<br>')}</span>`);
+      }catch(err){
+        resultEl.innerHTML = `<span class="err">Error: ${err.message}</span>`;
+        addLog('ai', `<span class="err">${err.message}</span>`);
+      }
+    }
 
+    // ───────────────────────────────────────────────────────────────
+    // GEOMETRY TOOLBOX (dynamic fields + compute)
+    // ───────────────────────────────────────────────────────────────
+
+    // SHAPE CONFIG
+    // Each entry has either:
+    //   { area: {fields:[], compute(v)->{value,steps}}, perimeter:{...} }
+    // or for multiple methods:
+    //   { area: { variants:{ key:{label, fields, compute} } }, ... }
+    const SHAPES = {
+      rectangle: {
+        area: {
+          fields:[{id:'length',label:'Length'},{id:'width',label:'Width'}],
+          compute:v=>{
+            const A = v.length*v.width;
+            return { value:A, steps:[`A = l × w = ${v.length} × ${v.width} = <b>${A}</b>`] };
+          }
+        },
+        perimeter: {
+          fields:[{id:'length',label:'Length'},{id:'width',label:'Width'}],
+          compute:v=>{
+            const P = 2*(v.length+v.width);
+            return { value:P, steps:[`P = 2(l + w) = 2(${v.length} + ${v.width}) = <b>${P}</b>`] };
+          }
+        }
+      },
+      square: {
+        area: {
+          fields:[{id:'side',label:'Side'}],
+          compute:v=>{
+            const A = v.side*v.side;
+            return { value:A, steps:[`A = s² = ${v.side}² = <b>${A}</b>`] };
+          }
+        },
+        perimeter: {
+          fields:[{id:'side',label:'Side'}],
+          compute:v=>{
+            const P = 4*v.side;
+            return { value:P, steps:[`P = 4s = 4×${v.side} = <b>${P}</b>`] };
+          }
+        }
+      },
+      circle: {
+        area: {
+          fields:[{id:'radius',label:'Radius'}],
+          compute:v=>{
+            const A = Math.PI*v.radius*v.radius;
+            return { value:A, steps:[`A = πr² = π × ${v.radius}² = <b>${A}</b>`] };
+          }
+        },
+        perimeter: {
+          fields:[{id:'radius',label:'Radius'}],
+          compute:v=>{
+            const C = 2*Math.PI*v.radius;
+            return { value:C, steps:[`C = 2πr = 2π × ${v.radius} = <b>${C}</b>`] };
+          }
+        }
+      },
+      triangle: {
+        area: {
+          variants: {
+            baseHeight: {
+              label:'Base & Height',
+              fields:[{id:'base',label:'Base'},{id:'height',label:'Height'}],
+              compute:v=>{
+                const A = 0.5*v.base*v.height;
+                return { value:A, steps:[`A = ½bh = 0.5 × ${v.base} × ${v.height} = <b>${A}</b>`] };
+              }
+            },
+            heron: {
+              label:'Three Sides (Heron)',
+              fields:[{id:'a',label:'Side a'},{id:'b',label:'Side b'},{id:'c',label:'Side c'}],
+              compute:v=>{
+                const a=v.a,b=v.b,c=v.c;
+                if (a+b<=c || a+c<=b || b+c<=a) throw new Error('Triangle inequality violated (check side lengths).');
+                const s=(a+b+c)/2;
+                const A=Math.sqrt(s*(s-a)*(s-b)*(s-c));
+                return { value:A, steps:[`Semi-perimeter s = (a+b+c)/2 = (${a}+${b}+${c})/2 = ${s}`, `A = √[s(s−a)(s−b)(s−c)] = √[${s}(${s-a})(${s-b})(${s-c})] = <b>${A}</b>`] };
+              }
+            }
+          }
+        },
+        perimeter: {
+          fields:[{id:'a',label:'Side a'},{id:'b',label:'Side b'},{id:'c',label:'Side c'}],
+          compute:v=>{
+            if (v.a+v.b<=v.c || v.a+v.c<=v.b || v.b+v.c<=v.a) throw new Error('Triangle inequality violated (check side lengths).');
+            const P = v.a+v.b+v.c;
+            return { value:P, steps:[`P = a + b + c = ${v.a} + ${v.b} + ${v.c} = <b>${P}</b>`] };
+          }
+        }
+      },
+      parallelogram: {
+        area: {
+          fields:[{id:'base',label:'Base'},{id:'height',label:'Height'}],
+          compute:v=>{
+            const A = v.base*v.height;
+            return { value:A, steps:[`A = b × h = ${v.base} × ${v.height} = <b>${A}</b>`] };
+          }
+        },
+        perimeter: {
+          fields:[{id:'a',label:'Side a'},{id:'b',label:'Side b'}],
+          compute:v=>{
+            const P = 2*(v.a+v.b);
+            return { value:P, steps:[`P = 2(a + b) = 2(${v.a}+${v.b}) = <b>${P}</b>`] };
+          }
+        }
+      },
+      trapezoid: {
+        area: {
+          fields:[{id:'a',label:'Base a'},{id:'b',label:'Base b'},{id:'h',label:'Height h'}],
+          compute:v=>{
+            const A = ((v.a+v.b)/2)*v.h;
+            return { value:A, steps:[`A = ((a+b)/2) × h = ((${v.a}+${v.b})/2) × ${v.h} = <b>${A}</b>`] };
+          }
+        },
+        perimeter: {
+          fields:[{id:'a',label:'Side a'},{id:'b',label:'Side b'},{id:'c',label:'Side c'},{id:'d',label:'Side d'}],
+          compute:v=>{
+            const P = v.a+v.b+v.c+v.d;
+            return { value:P, steps:[`P = a + b + c + d = ${v.a} + ${v.b} + ${v.c} + ${v.d} = <b>${P}</b>`] };
+          }
+        }
+      },
+      ellipse: {
+        area: {
+          fields:[{id:'a',label:'Semi-major (a)'},{id:'b',label:'Semi-minor (b)'}],
+          compute:v=>{
+            const A = Math.PI*v.a*v.b;
+            return { value:A, steps:[`A = πab = π × ${v.a} × ${v.b} = <b>${A}</b>`] };
+          }
+        },
+        perimeter: {
+          // Ramanujan approximation
+          fields:[{id:'a',label:'Semi-major (a)'},{id:'b',label:'Semi-minor (b)'}],
+          compute:v=>{
+            const a=v.a,b=v.b;
+            const h = Math.pow((a-b)/(a+b),2);
+            const P = Math.PI*(a+b)*(1 + (3*h)/(10 + Math.sqrt(4-3*h)));
+            return { value:P, steps:[`Approx. Ramanujan: P ≈ π(a+b) [1 + 3h/(10+√(4−3h))], h=((a−b)/(a+b))² = ${h.toFixed(6)}`, `P ≈ <b>${P}</b>`] };
+          }
+        }
+      },
+      regularPolygon: {
+        area: {
+          fields:[{id:'n',label:'Number of sides (n)'},{id:'s',label:'Side length (s)'}],
+          compute:v=>{
+            if (v.n < 3) throw new Error('n must be ≥ 3 for a polygon.');
+            const A = (v.n*v.s*v.s)/(4*Math.tan(Math.PI/v.n));
+            return { value:A, steps:[`A = (n s²) / (4 tan(π/n)) = (${v.n} × ${v.s}²) / (4 tan(π/${v.n})) = <b>${A}</b>`] };
+          }
+        },
+        perimeter: {
+          fields:[{id:'n',label:'Number of sides (n)'},{id:'s',label:'Side length (s)'}],
+          compute:v=>{
+            if (v.n < 3) throw new Error('n must be ≥ 3 for a polygon.');
+            const P = v.n*v.s;
+            return { value:P, steps:[`P = n × s = ${v.n} × ${v.s} = <b>${P}</b>`] };
+          }
+        }
+      }
+    };
+
+    // Elements
+    const shapeSel = $('#shapeSel');
+    const whatSel  = $('#whatSel');
+    const variantWrap = $('#variantWrap');
+    const variantSel  = $('#variantSel');
+    const geoFields   = $('#geoFields');
+    const geoResult   = $('#geoResult');
+
+    function numberInput(id,label, min=0, step='any'){
+      return `
+        <div class="grid-2" style="margin-top:.4rem">
+          <div style="grid-column:1 / -1">
+            <label class="small" for="${id}">${label}</label>
+            <input id="${id}" name="${id}" type="number" inputmode="decimal" min="${min}" step="${step}" placeholder="Enter ${label.toLowerCase()}">
+          </div>
+        </div>
+      `;
+    }
+
+    function buildFields(){
+      geoFields.innerHTML = '';
+      geoResult.innerHTML = '';
+      const shape = shapeSel.value;
+      const what  = whatSel.value;
+      const cfg = SHAPES[shape]?.[what];
+      if(!cfg){ geoFields.textContent='Not available for this shape.'; return; }
+
+      // Handle variants (e.g., triangle area)
+      if (cfg.variants){
+        variantWrap.style.display = '';
+        variantSel.innerHTML = '';
+        for (const [k,v] of Object.entries(cfg.variants)){
+          const opt = document.createElement('option');
+          opt.value = k; opt.textContent = v.label;
+          variantSel.appendChild(opt);
+        }
+        const firstKey = variantSel.value || Object.keys(cfg.variants)[0];
+        renderFieldList(cfg.variants[firstKey].fields);
+      } else {
+        variantWrap.style.display = 'none';
+        renderFieldList(cfg.fields);
+      }
+    }
+
+    function renderFieldList(fields){
+      geoFields.innerHTML = fields.map(f => numberInput(f.id, f.label)).join('');
+    }
+
+    shapeSel.addEventListener('change', buildFields);
+    whatSel.addEventListener('change', buildFields);
+    variantSel.addEventListener('change', ()=>{
+      const shape = shapeSel.value, what = whatSel.value;
+      const cfg = SHAPES[shape]?.[what];
+      if (cfg?.variants){
+        renderFieldList(cfg.variants[variantSel.value].fields);
+      }
+      geoResult.innerHTML = '';
+    });
+
+    function getValues(fieldDefs){
+      const v = {};
+      for (const f of fieldDefs){
+        const el = document.getElementById(f.id);
+        const val = parseFloat(el.value);
+        if(isNaN(val)) throw new Error(`Please enter a valid number for "${f.label}".`);
+        if(val <= 0) throw new Error(`"${f.label}" must be > 0.`);
+        v[f.id] = val;
+      }
+      return v;
+    }
+
+    $('#geoCalc').addEventListener('click', ()=>{
+      try{
+        const shape = shapeSel.value, what = whatSel.value;
+        const cfg = SHAPES[shape]?.[what];
+        if(!cfg) throw new Error('Not available.');
+        let res, steps;
+
+        if (cfg.variants){
+          const vkey = variantSel.value;
+          const use = cfg.variants[vkey];
+          const vals = getValues(use.fields);
+          const out  = use.compute(vals);
+          res = out.value; steps = out.steps;
+        } else {
+          const vals = getValues(cfg.fields);
+          const out  = cfg.compute(vals);
+          res = out.value; steps = out.steps;
+        }
+
+        geoResult.innerHTML = `
+          <div><strong class="ok">Answer:</strong> ${+(+res).toFixed(6)}</div>
+          <div class="small">${steps.join('<br>')}</div>
+        `;
+      } catch(err){
+        geoResult.innerHTML = `<div class="err">Error: ${err.message}</div>`;
+      }
+    });
+
+    $('#geoClear').addEventListener('click', ()=>{
+      geoFields.querySelectorAll('input').forEach(i => i.value = '');
+      geoResult.innerHTML = '';
+    });
+
+    // Initialize geometry UI
+    buildFields();
+  </script>
 </body>
 </html>
+``
